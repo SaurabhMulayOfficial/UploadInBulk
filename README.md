@@ -155,7 +155,7 @@ python-multipart
 Run the FastAPI server from the project root:
 
 ```bash
-uvicorn Backend.app.main:app --reload
+uvicorn app.main:app --reload
 ```
 
 The application will be available at:
@@ -688,7 +688,7 @@ RES-999.pdf    Failed      No matching record
 Start the application:
 
 ```bash
-uvicorn Backend.app.main:app --reload
+uvicorn app.main:app --reload
 ```
 
 After modifying Python code, FastAPI's reload mode automatically restarts the application.
@@ -702,7 +702,7 @@ CTRL+C
 then:
 
 ```bash
-uvicorn Backend.app.main:app --reload
+uvicorn app.main:app --reload
 ```
 
 ---

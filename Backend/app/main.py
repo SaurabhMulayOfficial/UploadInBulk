@@ -3,12 +3,12 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from pydantic import BaseModel
 
-from Backend.app.login import get_access_token_info
-from Backend.app.session import (
+from app.login import get_access_token_info
+from app.session import (
     set_salesforce_session
 )
 
-from Backend.app.session import (
+from app.session import (
     get_salesforce_session )
 
 from typing import Optional
@@ -18,7 +18,7 @@ from fastapi import (
     UploadFile,
 )
 
-from Backend.app.bulk_upload import process_files
+from app.bulk_upload import process_files
 
 class SalesforceLoginRequest(BaseModel):
     salesforce_url: str
