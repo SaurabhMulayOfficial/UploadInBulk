@@ -1,0 +1,65 @@
+# Python
+
+**pycache**/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables / secrets
+
+.env
+.env.*
+!.env.example
+
+# Python tooling
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE
+
+.vscode/
+.idea/
+
+# macOS
+
+.DS_Store
+
+# Logs
+
+*.log
+
+# Temporary files
+
+*.tmp
+*.temp
+
+# Build / distribution
+
+build/
+dist/
+*.egg-info/
+
+# Node (if frontend tooling is added later)
+
+node_modules/
+
+# Local uploads / test files
+
+uploads/
+test-files/
+
+# Local configuration
+
+config.local.*
+secrets/

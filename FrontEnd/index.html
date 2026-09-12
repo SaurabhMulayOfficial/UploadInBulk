@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Salesforce Bulk File Uploader</title>
+
+    <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+
+    <main class="app">
+
+        <!-- ========================================= -->
+        <!-- HEADER -->
+        <!-- ========================================= -->
+
+        <header class="app-header">
+
+            <div>
+                <div class="eyebrow">
+                    SALESFORCE UTILITY
+                </div>
+
+                <h1>
+                    Bulk File Uploader
+                </h1>
+
+                <p>
+                    Upload files to Salesforce and relate them to records
+                    using a matching field.
+                </p>
+            </div>
+
+            <div class="connection-indicator">
+
+                <span
+                    id="connectionDot"
+                    class="status-dot"
+                ></span>
+
+                <span id="connectionText">
+                    Not connected
+                </span>
+
+            </div>
+
+        </header>
+
+
+        <!-- ========================================= -->
+        <!-- STEP 1 - SALESFORCE CONNECTION -->
+        <!-- ========================================= -->
+
+        <section
+            class="step-card active"
+            id="connectionStep"
+        >
+
+            <div class="step-header">
+
+                <div class="step-number">
+                    1
+                </div>
+
+                <div>
+                    <h2>
+                        Salesforce Connection
+                    </h2>
+
+                    <p>
+                        Connect to the Salesforce org where the files
+                        will be uploaded.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="form">
+
+                <!-- Salesforce URL -->
+
+                <div class="field">
+
+                    <label for="salesforceUrl">
+                        Salesforce URL
+                    </label>
+
+                    <input
+                        id="salesforceUrl"
+                        type="url"
+                        placeholder="https://yourorg.my.salesforce.com"
+                        autocomplete="url"
+                    >
+
+                    <span class="field-help">
+                        Example:
+                        https://yourorg.my.salesforce.com
+                    </span>
+
+                </div>
+
+
+                <!-- Client ID -->
+
+                <div class="field">
+
+                    <label for="clientId">
+                        Client ID
+                    </label>
+
+                    <input
+                        id="clientId"
+                        type="text"
+                        placeholder="Salesforce Client ID"
+                        autocomplete="off"
+                    >
+
+                </div>
+
+
+                <!-- Client Secret -->
+
+                <div class="field">
+
+                    <label for="clientSecret">
+                        Client Secret
+                    </label>
+
+                    <input
+                        id="clientSecret"
+                        type="password"
+                        placeholder="Salesforce Client Secret"
+                        autocomplete="off"
+                    >
+
+                </div>
+
+
+                <!-- Connection Message -->
+
+                <div
+                    id="connectionMessage"
+                    class="message hidden"
+                ></div>
+
+
+                <!-- Connect -->
+
+                <div class="form-actions">
+
+                    <button
+                        id="connectButton"
+                        class="primary-button"
+                    >
+                        Connect to Salesforce
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ========================================= -->
+        <!-- STEP 2 - FILE RELATIONSHIP -->
+        <!-- ========================================= -->
+
+        <section
+            class="step-card"
+            id="relationStep"
+        >
+
+            <div class="step-header">
+
+                <div class="step-number">
+                    2
+                </div>
+
+                <div>
+                    <h2>
+                        File Relationship
+                    </h2>
+
+                    <p>
+                        Define how uploaded files should be related
+                        to Salesforce records.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="form">
+
+                <!-- Salesforce Object -->
+
+                <div class="field">
+
+                    <label for="relateObject">
+                        Relate Files To
+                    </label>
+
+                    <input
+                        id="relateObject"
+                        type="text"
+                        placeholder="Product2"
+                    >
+
+                    <span class="field-help">
+                        Enter the Salesforce object API name.
+                        Leave empty if files should not be related.
+                    </span>
+
+                </div>
+
+
+                <!-- Matching Field -->
+
+                <div
+                    class="field"
+                    id="matchingFieldContainer"
+                >
+
+                    <label for="matchingField">
+                        Matching Field API Name
+                    </label>
+
+                    <input
+                        id="matchingField"
+                        type="text"
+                        placeholder="ProductCode"
+                    >
+
+                    <span class="field-help">
+                        This field will be compared with the file name.
+                        Example: RES-101.pdf → RES-101.
+                    </span>
+
+                </div>
+
+
+                <!-- Visibility -->
+
+                <div
+                    class="field"
+                    id="visibilityContainer"
+                >
+
+                    <label for="fileVisibility">
+                        File Visibility
+                    </label>
+
+                    <select id="fileVisibility">
+
+                        <option value="AllUsers">
+                            All Users
+                        </option>
+
+                        <option value="InternalUsers">
+                            Internal Users
+                        </option>
+
+                        <option value="SharedUsers">
+                            Shared Users
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- Step 2 Message -->
+
+                <div
+                    id="relationMessage"
+                    class="message hidden"
+                ></div>
+
+
+                <!-- Continue -->
+
+                <div class="form-actions">
+
+                    <button
+                        id="continueRelationButton"
+                        class="primary-button"
+                    >
+                        Continue
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ========================================= -->
+        <!-- STEP 3 - SELECT FILES -->
+        <!-- ========================================= -->
+
+        <section
+            class="step-card"
+            id="fileStep"
+        >
+
+            <div class="step-header">
+
+                <div class="step-number">
+                    3
+                </div>
+
+                <div>
+                    <h2>
+                        Select Files
+                    </h2>
+
+                    <p>
+                        Select the files you want to upload.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="form">
+
+                <!-- Bulk File Selector -->
+
+                <div class="field">
+
+                    <label for="fileInput">
+                        Files
+                    </label>
+
+                    <input
+                        id="fileInput"
+                        type="file"
+                        multiple
+                    >
+
+                    <span class="field-help">
+                        Select multiple files at once.
+                    </span>
+
+                </div>
+
+
+                <!-- Selected Files Summary -->
+
+                <div
+                    id="fileSummary"
+                    class="file-summary hidden"
+                >
+
+                    <strong>
+                        Selected files:
+                    </strong>
+
+                    <span id="fileCount">
+                        0
+                    </span>
+
+                </div>
+
+
+                <!-- Selected Files -->
+
+                <div
+                    id="fileList"
+                    class="file-list"
+                ></div>
+
+
+                <!-- Upload Button -->
+
+                <div class="form-actions">
+
+                    <button
+                        id="uploadButton"
+                        class="primary-button"
+                        disabled
+                    >
+                        Upload Files
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <div
+            id="uploadSummary"
+            class="upload-summary hidden"
+        >
+            <div class="summary-card">
+                <span class="summary-label">Total</span>
+                <strong id="resultTotal">0</strong>
+            </div>
+
+            <div class="summary-card">
+                <span class="summary-label">Uploaded</span>
+                <strong id="resultUploaded">0</strong>
+            </div>
+
+            <div class="summary-card">
+                <span class="summary-label">Failed</span>
+                <strong id="resultFailed">0</strong>
+            </div>
+        </div>
+
+        <div
+            id="uploadResults"
+            class="upload-results hidden"
+        ></div>
+
+    </main>
+
+
+    <script src="/app.js"></script>
+
+</body>
+
+</html>
