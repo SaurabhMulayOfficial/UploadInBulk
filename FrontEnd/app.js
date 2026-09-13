@@ -18,6 +18,19 @@ const state = {
 // Elements
 // =========================================
 
+const Threads = document.getElementById("Threads");
+const NumberOfThreads = parseInt(Threads.value) || 1;
+
+
+// UPDATED element refs
+const progressPanel = document.getElementById("uploadProgressPanel");
+const progressBarFill = document.getElementById("progressBarFill");
+const progressPercent = document.getElementById("progressPercent");
+const progressCount = document.getElementById("progressCount");
+const progressCurrentFile = document.getElementById("progressCurrentFile");
+
+let progressPollInterval = null;
+
 const connectionStep =
     document.getElementById("connectionStep");
 
@@ -712,94 +725,92 @@ async function handleUpload() {
     }
 
     uploadButton.disabled = true;
+    uploadButton.textContent = "Uploading...";
 
-    uploadButton.textContent =
-        "Uploading...";
+    uploadResults.classList.add("hidden");
+    uploadSummary.classList.add("hidden");
 
-    uploadResults.classList.add(
-        "hidden"
-    );
+    const jobId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-    uploadSummary.classList.add(
-        "hidden"
-    );
+    progressBarFill.style.width = "0%";
+    progressPercent.textContent = "0%";
+    progressCount.textContent = `0 of ${state.files.length} files`;
+    progressCurrentFile.textContent = "";
+    progressPanel.classList.remove("hidden");
+
+    progressPollInterval = setInterval(async () => {
+        try {
+            const res = await fetch(`/api/files/upload/progress/${jobId}`);
+            const data = await res.json();
+
+            if (data.total > 0) {
+                const percent = Math.round((data.completed / data.total) * 100);
+                progressBarFill.style.width = `${percent}%`;
+                progressPercent.textContent = `${percent}%`;
+                progressCount.textContent = `${data.completed} of ${data.total} files`;
+                progressCurrentFile.textContent = data.current
+                    ? `Uploading ${data.current}`
+                    : "";
+            }
+        } catch (e) {
+            // ignore poll errors
+        }
+    }, 500);
 
     try {
 
-        const formData =
-            new FormData();
+        const formData = new FormData();
 
-        // Add files
-        state.files.forEach(
-            file => {
+        state.files.forEach(file => {
+            formData.append("files", file);
+        });
 
-                formData.append(
-                    "files",
-                    file
-                );
+        formData.append("job_id", jobId);
 
-            }
-        );
+        const threadsInput = document.getElementById("Threads");
+        formData.append("numberofThreads", threadsInput ? threadsInput.value : "1");
 
-        // Add relationship configuration
         if (state.relation.object) {
-
-            formData.append(
-                "object_name",
-                state.relation.object
-            );
-
-            formData.append(
-                "field_name",
-                state.relation.matchingField
-            );
-
-            formData.append(
-                "visibility",
-                state.relation.visibility
-            );
+            formData.append("object_name", state.relation.object);
+            formData.append("field_name", state.relation.matchingField);
+            formData.append("visibility", state.relation.visibility);
         }
 
-        const response =
-            await fetch(
-                "/api/files/upload",
-                {
-                    method: "POST",
-                    body: formData
-                }
-            );
+        const response = await fetch("/api/files/upload", {
+            method: "POST",
+            body: formData
+        });
 
-        const data =
-            await response.json();
+        const data = await response.json();
 
-        if (
-            !response.ok ||
-            !data.success
-        ) {
-            throw new Error(
-                data.message ||
-                "File upload failed."
-            );
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "File upload failed.");
         }
+
+        progressBarFill.style.width = "100%";
+        progressPercent.textContent = "100%";
+        progressCount.textContent = `${data.total} of ${data.total} files`;
+        progressCurrentFile.textContent = "";
 
         showUploadResults(data);
 
     } catch (error) {
 
-        showUploadError(
-            error.message ||
-            "Unable to upload files."
-        );
+        showUploadError(error.message || "Unable to upload files.");
 
     } finally {
 
-        uploadButton.disabled =
-            false;
+        clearInterval(progressPollInterval);
 
-        uploadButton.textContent =
-            "Upload Files";
+        setTimeout(() => {
+            progressPanel.classList.add("hidden");
+        }, 600);
+
+        uploadButton.disabled = false;
+        uploadButton.textContent = "Upload Files";
     }
 }
+
 
 function showUploadResults(data) {
 

@@ -338,6 +338,21 @@
                 <!-- Bulk File Selector -->
 
                 <div class="field">
+                    <label for="Threads">
+                        Number of Threads
+                    </label>
+
+                    <input type="number" id="Threads" placeholder = "Number of Threads" min = "1" max = "10" value = "1">
+
+                    <br>
+                    
+                    <small>
+                        Number of concurrent threads used to process files. Higher values may improve speed but use more system resources. It depends on your system capabilities and the size of the files being uploaded. Start with a lower number and increase if needed.
+                        (This has been hosted on free service which has limited resources, so please keep it low)
+                    </small>
+
+                    <br>
+                    <br>
 
                     <label for="fileInput">
                         Files
@@ -381,7 +396,6 @@
                     class="file-list"
                 ></div>
 
-
                 <!-- Upload Button -->
 
                 <div class="form-actions">
@@ -400,6 +414,27 @@
 
         </section>
 
+        <section id="uploadProgressPanel" class="progress-panel hidden">
+            <div class="progress-panel-header">
+                <div class="progress-panel-title">
+                    <span class="progress-dot"></span>
+                    Uploading files
+                </div>
+                <span id="progressPercent" class="progress-percent">0%</span>
+            </div>
+
+            <div class="progress-bar-track">
+                <div id="progressBarFill" class="progress-bar-fill"></div>
+            </div>
+
+            <div class="progress-panel-footer">
+                <span id="progressCount">0 of 0 files</span>
+                <span id="progressCurrentFile" class="progress-current-file"></span>
+            </div>
+        </section>
+
+        <br>
+        <br>
 
         <div
             id="uploadSummary"

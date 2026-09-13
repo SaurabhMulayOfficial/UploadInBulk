@@ -19,6 +19,7 @@ from fastapi import (
 )
 
 from app.bulk_upload import process_files
+from app.progress import get_progress, clear_progress  # ADDED
 
 class SalesforceLoginRequest(BaseModel):
     salesforce_url: str
@@ -34,11 +35,6 @@ app = FastAPI(
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = BASE_DIR / "FrontEnd"
-
-print("BASE_DIR:", BASE_DIR)
-print("FRONTEND_DIR:", FRONTEND_DIR)
-print("FRONTEND EXISTS:", FRONTEND_DIR.exists())
-print("INDEX EXISTS:", (FRONTEND_DIR / "index.html").exists())
 
 
 @app.get("/api/health")
@@ -78,18 +74,27 @@ def login(request: SalesforceLoginRequest):
         }
 
 
+# ADDED: progress polling endpoint
+@app.get("/api/files/upload/progress/{job_id}")
+def upload_progress(job_id: str):
+    progress = get_progress(job_id)
+
+    if not progress:
+        return {"total": 0, "completed": 0}
+
+    return progress
+
+
 @app.post("/api/files/upload")
 async def upload_files(
     files: list[UploadFile] = File(...),
     object_name: Optional[str] = Form(None),
     field_name: Optional[str] = Form(None),
     visibility: Optional[str] = Form(None),
+    numberofThreads: Optional[int] = Form(1),
+    job_id: Optional[str] = Form(None),  # ADDED
 ):
     try:
-
-        # -----------------------------------------
-        # Validate relationship inputs
-        # -----------------------------------------
 
         if object_name and not field_name:
 
@@ -114,21 +119,7 @@ async def upload_files(
                 ),
             }
 
-        # -----------------------------------------
-        # Get authenticated Salesforce session
-        # -----------------------------------------
-
-        # IMPORTANT:
-        # This assumes your login flow stores the
-        # access token server-side.
-        #
-        # Do NOT accept the access token from frontend.
-
         session = get_salesforce_session()
-
-        # -----------------------------------------
-        # Process files
-        # -----------------------------------------
 
         results = await process_files(
             files=files,
@@ -137,7 +128,12 @@ async def upload_files(
             object_name=object_name,
             field_name=field_name,
             visibility=visibility,
+            numberofThreads=numberofThreads,
+            job_id=job_id,  # ADDED
         )
+
+        if job_id:  # ADDED
+            clear_progress(job_id)
 
         return {
             "success": True,
@@ -161,8 +157,8 @@ async def upload_files(
             "success": False,
             "message": str(error),
         }
-        
-        
+
+
 app.mount(
     "/",
     StaticFiles(

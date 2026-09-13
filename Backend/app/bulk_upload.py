@@ -6,10 +6,11 @@ from app.salesforce_files import (
     create_content_version,
     create_content_document_link,
 )
+from app.progress import init_progress, increment_progress  # ADDED
 
 
 # Number of files uploaded concurrently
-MAX_WORKERS = 2
+MAX_WORKERS = 1 # input from user in frontend, default 1
 
 def upload_single_file(
     file_data,
@@ -33,19 +34,11 @@ def upload_single_file(
     filename_key = Path(filename).stem
 
     try:
-        # -----------------------------------------
-        # Find matching Salesforce record
-        # -----------------------------------------
-
         matched_records = (
             record_matches.get(filename_key, [])
             if object_name
             else []
         )
-
-        # -----------------------------------------
-        # No match
-        # -----------------------------------------
 
         if object_name and not matched_records:
             return {
@@ -57,10 +50,6 @@ def upload_single_file(
                     f"'{filename_key}'."
                 ),
             }
-
-        # -----------------------------------------
-        # Multiple matches
-        # -----------------------------------------
 
         if len(matched_records) > 1:
             return {
@@ -74,10 +63,6 @@ def upload_single_file(
                 "record_ids": matched_records,
             }
 
-        # -----------------------------------------
-        # Create ContentVersion
-        # -----------------------------------------
-
         content_document_id = create_content_version(
             instance_url=instance_url,
             access_token=access_token,
@@ -90,10 +75,6 @@ def upload_single_file(
             "status": "uploaded",
             "content_document_id": content_document_id,
         }
-
-        # -----------------------------------------
-        # Create ContentDocumentLink
-        # -----------------------------------------
 
         if object_name:
             record_id = matched_records[0]
@@ -128,20 +109,12 @@ async def process_files(
     object_name: str | None,
     field_name: str | None,
     visibility: str | None,
+    numberofThreads: int = 1,
+    job_id: str | None = None,  # ADDED
 ):
     """
     Main bulk upload workflow.
-
-    Files are uploaded concurrently using a bounded
-    thread pool.
-
-    MAX_WORKERS controls how many files are processed
-    simultaneously.
     """
-
-    # -------------------------------------------------
-    # 1. Match Salesforce records
-    # -------------------------------------------------
 
     record_matches = {}
 
@@ -165,25 +138,22 @@ async def process_files(
             filenames=filenames,
         )
 
-    # -------------------------------------------------
-    # 2 & 3. Read + upload in bounded batches
-    # -------------------------------------------------
-    # Only BATCH_SIZE files' bytes are ever in memory
-    # at once, instead of all files upfront.
+    # ADDED: init progress tracker
+    if job_id:
+        init_progress(job_id, len(files))
 
-    BATCH_SIZE = 2 # tune based on avg file size
+    BATCH_SIZE = numberofThreads
 
     results = []
 
     with ThreadPoolExecutor(
-        max_workers=MAX_WORKERS
+        max_workers=numberofThreads
     ) as executor:
 
         for start in range(0, len(files), BATCH_SIZE):
 
             batch_files = files[start:start + BATCH_SIZE]
 
-            # Read only this batch
             batch_data = []
             for file in batch_files:
                 batch_data.append({
@@ -205,10 +175,11 @@ async def process_files(
                 for item in batch_data
             ]
 
-            for future in futures:
+            for future, item in zip(futures, batch_data):
                 results.append(future.result())
+                if job_id:
+                    increment_progress(job_id, item["filename"])
 
-            # Explicitly drop this batch's bytes before next iteration
             batch_data.clear()
 
     return results
