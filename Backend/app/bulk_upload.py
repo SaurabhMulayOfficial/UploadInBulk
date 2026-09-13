@@ -9,8 +9,7 @@ from app.salesforce_files import (
 
 
 # Number of files uploaded concurrently
-MAX_WORKERS = 10
-
+MAX_WORKERS = 5
 
 def upload_single_file(
     file_data,
@@ -167,25 +166,12 @@ async def process_files(
         )
 
     # -------------------------------------------------
-    # 2. Read all files
+    # 2 & 3. Read + upload in bounded batches
     # -------------------------------------------------
+    # Only BATCH_SIZE files' bytes are ever in memory
+    # at once, instead of all files upfront.
 
-    # IMPORTANT:
-    # UploadFile objects should be read before sending
-    # work to multiple threads.
-
-    file_data = []
-
-    for file in files:
-
-        file_data.append({
-            "filename": file.filename,
-            "file_bytes": await file.read(),
-        })
-
-    # -------------------------------------------------
-    # 3. Upload concurrently
-    # -------------------------------------------------
+    BATCH_SIZE = 5  # tune based on avg file size
 
     results = []
 
@@ -193,24 +179,36 @@ async def process_files(
         max_workers=MAX_WORKERS
     ) as executor:
 
-        futures = [
-            executor.submit(
-                upload_single_file,
-                file_data_item,
-                instance_url,
-                access_token,
-                object_name,
-                field_name,
-                visibility,
-                record_matches,
-            )
-            for file_data_item in file_data
-        ]
+        for start in range(0, len(files), BATCH_SIZE):
 
-        # Keep original file order
-        for future in futures:
-            results.append(
-                future.result()
-            )
+            batch_files = files[start:start + BATCH_SIZE]
+
+            # Read only this batch
+            batch_data = []
+            for file in batch_files:
+                batch_data.append({
+                    "filename": file.filename,
+                    "file_bytes": await file.read(),
+                })
+
+            futures = [
+                executor.submit(
+                    upload_single_file,
+                    item,
+                    instance_url,
+                    access_token,
+                    object_name,
+                    field_name,
+                    visibility,
+                    record_matches,
+                )
+                for item in batch_data
+            ]
+
+            for future in futures:
+                results.append(future.result())
+
+            # Explicitly drop this batch's bytes before next iteration
+            batch_data.clear()
 
     return results
