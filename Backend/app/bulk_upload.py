@@ -9,7 +9,7 @@ from app.salesforce_files import (
 
 
 # Number of files uploaded concurrently
-MAX_WORKERS = 5
+MAX_WORKERS = 2
 
 def upload_single_file(
     file_data,
@@ -171,7 +171,7 @@ async def process_files(
     # Only BATCH_SIZE files' bytes are ever in memory
     # at once, instead of all files upfront.
 
-    BATCH_SIZE = 5  # tune based on avg file size
+    BATCH_SIZE = 2 # tune based on avg file size
 
     results = []
 
