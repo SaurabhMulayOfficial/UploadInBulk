@@ -7,7 +7,7 @@ from app.salesforce_files import (
     create_content_document_link,
 )
 from app.progress import init_progress, increment_progress  # ADDED
-
+import asyncio
 
 # Number of files uploaded concurrently
 MAX_WORKERS = 1 # input from user in frontend, default 1
@@ -110,27 +110,21 @@ async def process_files(
     field_name: str | None,
     visibility: str | None,
     numberofThreads: int = 1,
-    job_id: str | None = None,  # ADDED
+    job_id: str | None = None,
 ):
-    """
-    Main bulk upload workflow.
-    """
-
     record_matches = {}
 
     if object_name:
-
         if not field_name:
             raise ValueError(
                 "fieldName is required when objectName is supplied."
             )
 
-        filenames = [
-            file.filename
-            for file in files
-        ]
+        filenames = [file.filename for file in files]
 
-        record_matches = query_matching_records(
+        # ALSO blocking - wrap this too
+        record_matches = await asyncio.to_thread(
+            query_matching_records,
             instance_url=instance_url,
             access_token=access_token,
             object_name=object_name,
@@ -138,17 +132,15 @@ async def process_files(
             filenames=filenames,
         )
 
-    # ADDED: init progress tracker
     if job_id:
         init_progress(job_id, len(files))
 
     BATCH_SIZE = numberofThreads
-
     results = []
 
-    with ThreadPoolExecutor(
-        max_workers=numberofThreads
-    ) as executor:
+    loop = asyncio.get_event_loop()
+
+    with ThreadPoolExecutor(max_workers=numberofThreads) as executor:
 
         for start in range(0, len(files), BATCH_SIZE):
 
@@ -161,8 +153,10 @@ async def process_files(
                     "file_bytes": await file.read(),
                 })
 
-            futures = [
-                executor.submit(
+            # KEY CHANGE: run_in_executor + await, NOT future.result()
+            tasks = [
+                loop.run_in_executor(
+                    executor,
                     upload_single_file,
                     item,
                     instance_url,
@@ -175,8 +169,10 @@ async def process_files(
                 for item in batch_data
             ]
 
-            for future, item in zip(futures, batch_data):
-                results.append(future.result())
+            batch_results = await asyncio.gather(*tasks)
+
+            for item, result in zip(batch_data, batch_results):
+                results.append(result)
                 if job_id:
                     increment_progress(job_id, item["filename"])
 
